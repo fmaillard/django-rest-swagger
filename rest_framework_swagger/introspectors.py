@@ -71,6 +71,17 @@ class BaseViewIntrospector(object):
         if hasattr(self.callback, 'get_serializer_class'):
             return self.callback().get_serializer_class()
 
+    def get_method_introspector_class(self):
+        """
+        Returns the method introspector class for the view. If a custom method
+        introspection is needed, it can be specified in the view's
+        get_method_introspector_class() method.
+        """
+        if hasattr(self.callback, 'get_method_introspector_class'):
+            return self.callback().get_method_introspector_class()
+        else:
+            return APIViewMethodIntrospector
+
     def get_description(self):
         """
         Returns the first sentence of the first line of the class docstring
@@ -89,6 +100,10 @@ class BaseMethodIntrospector(object):
 
     def get_serializer_class(self):
         return self.parent.get_serializer_class()
+
+    def get_response_class(self):
+        serializer = self.get_serializer_class()
+        return IntrospectorHelper.get_serializer_name(serializer)
 
     def get_summary(self):
         docs = self.get_docs()
@@ -265,7 +280,8 @@ class APIViewIntrospector(BaseViewIntrospector):
     def __iter__(self):
         methods = self.callback().allowed_methods
         for method in methods:
-            yield APIViewMethodIntrospector(self, method)
+            introspector_class = self.get_method_introspector_class()
+            yield introspector_class(self, method)
 
 
 class APIViewMethodIntrospector(BaseMethodIntrospector):
